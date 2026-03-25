@@ -280,12 +280,12 @@ def initialize_device():
     """Inicializa o dispositivo em background"""
     def init_thread():
         print("Conectando ao leitor Nitgen Hamster DX...")
-        if hamster.connect():
-            print("✅ Leitor conectado com sucesso!")
+        if hamster.connected:
+            print("Leitor conectado com sucesso!")
             print(f"   Modelo: {hamster.device_info['model']}")
             print(f"   Serial: {hamster.device_info['serial']}")
         else:
-            print("❌ Falha ao conectar ao leitor")
+            print("Falha ao conectar ao leitor")
             print("   Verifique se o dispositivo está conectado")
     
     # Inicia em thread separada para não bloquear
@@ -295,7 +295,7 @@ def initialize_device():
 
 if __name__ == '__main__':
     print("=" * 50)
-    print("🚀 BioEstoque Agent - Nitgen Hamster DX")
+    print("BioEstoque Agent - Nitgen Hamster DX")
     print("=" * 50)
     print(f"Versão: {AGENT_VERSION}")
     print(f"Dispositivo: {DEVICE_MODEL}")
