@@ -7,7 +7,7 @@ const cors = require('cors');
 const helmet = require('helmet');
 const morgan = require('morgan');
 
-// Polyfill for fetch in Node.js
+// Polyfill for fetch in Node.js - MUST be at global scope
 const { fetch, Request, Response } = require('node-fetch');
 global.fetch = fetch;
 global.Request = Request;
@@ -15,12 +15,9 @@ global.Response = Response;
 
 class BioEstoqueBackend {
   constructor() {
-    // Polyfill for fetch in Node.js - MUST be before any fetch usage
-    const { fetch, Request, Response } = require('node-fetch');
-    global.fetch = fetch;
-    global.Request = Request;
-    global.Response = Response;
-
+    // Store fetch in class property to avoid scope issues
+    this.fetch = require('node-fetch').default;
+    
     this.app = express();
     this.server = http.createServer(this.app);
     this.wss = new WebSocket.Server({ server: this.server });
@@ -308,6 +305,7 @@ class BioEstoqueBackend {
   }
 
   async proxyRequest(method, path, body) {
+    // Use class fetch property to avoid scope issues
     const url = `http://localhost:8080${path}`;
     
     const options = {
@@ -321,7 +319,7 @@ class BioEstoqueBackend {
       options.body = JSON.stringify(body);
     }
 
-    const response = await fetch(url, options);
+    const response = await this.fetch(url, options);
     const data = await response.json();
     
     if (!response.ok) {
