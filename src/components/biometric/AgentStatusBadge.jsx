@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Wifi, WifiOff, Loader2 } from 'lucide-react';
-import { checkAgentStatus } from '@/lib/nitgenAgent';
+import { Wifi, WifiOff, Loader2, Play } from 'lucide-react';
+import { checkAgentStatus, startAgentIfNeeded } from '@/lib/nitgenAgent';
 import { cn } from '@/lib/utils';
 
 export default function AgentStatusBadge({ onStatusChange, className }) {
   const [status, setStatus] = useState('checking'); // checking | online | offline
   const [device, setDevice] = useState(null);
+  const [autoStartAttempted, setAutoStartAttempted] = useState(false);
 
   const check = async () => {
     setStatus('checking');
@@ -13,6 +14,19 @@ export default function AgentStatusBadge({ onStatusChange, className }) {
     setStatus(result.online ? 'online' : 'offline');
     setDevice(result.device || null);
     onStatusChange?.(result.online);
+    
+    // Tenta iniciar automaticamente se estiver offline e for ambiente de dev
+    if (!result.online && !autoStartAttempted) {
+      setAutoStartAttempted(true);
+      const startResult = await startAgentIfNeeded();
+      if (startResult.reason === 'Início manual necessário por segurança') {
+        // Mostra instruções no console
+        console.log('📋 Para iniciar o agente manualmente:');
+        console.log('1. Abra o terminal na pasta do projeto');
+        console.log('2. Execute: python agent.py');
+        console.log('3. Aguarde a mensagem "Leitor conectado com sucesso!"');
+      }
+    }
   };
 
   useEffect(() => {

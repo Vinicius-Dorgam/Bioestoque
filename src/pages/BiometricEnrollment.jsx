@@ -141,9 +141,14 @@ export default function BiometricEnrollment() {
                   <div>
                     <p className="text-sm font-semibold text-amber-800">Agente local não detectado</p>
                     <p className="text-xs text-amber-700 mt-1">
-                      Para usar o leitor Nitgen Hamster DX, o agente local precisa estar rodando no computador.
-                      Execute <code className="bg-amber-100 px-1 py-0.5 rounded text-xs">python agent.py</code> para iniciar.
+                      Para usar o leitor Nitgen Hamster DX, o agente local precisa estar rodando.
                     </p>
+                    <div className="mt-2 p-2 bg-amber-100 rounded text-xs font-mono">
+                      <p className="font-semibold text-amber-800">Início automático:</p>
+                      <p>Windows: Clique em start_agent.bat</p>
+                      <p>Linux/Mac: python start_agent.py</p>
+                      <p>Manual: python agent.py</p>
+                    </div>
                   </div>
                 </div>
               </CardContent>

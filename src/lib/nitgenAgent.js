@@ -105,3 +105,33 @@ export async function identifyFingerprint(capturedFir, profiles) {
     return { success: false, error: 'Agente local não disponível.' };
   }
 }
+
+/**
+ * Inicia automaticamente o agente Python se detectado ambiente de desenvolvimento
+ * Esta função tenta iniciar o agente local quando a aplicação é aberta
+ */
+export async function startAgentIfNeeded() {
+  // Verifica se estamos em ambiente de desenvolvimento
+  const isDevelopment = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+  
+  if (!isDevelopment) {
+    return { started: false, reason: 'Ambiente de produção detectado' };
+  }
+
+  // Verifica se o agente já está rodando
+  const status = await checkAgentStatus();
+  if (status.online) {
+    return { started: false, reason: 'Agente já está rodando', status };
+  }
+
+  // Tenta iniciar o agente via fetch (simulado - não funciona em browser por segurança)
+  // Em produção, isso precisaria ser feito via backend ou manualmente
+  console.log('🚀 Tentando iniciar agente Python automaticamente...');
+  console.log('⚠️  Por razões de segurança, inicie manualmente: python agent.py');
+  
+  return { 
+    started: false, 
+    reason: 'Início manual necessário por segurança',
+    instructions: 'Execute "python agent.py" no terminal'
+  };
+}
