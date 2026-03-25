@@ -1,34 +1,70 @@
 /**
- * NitgenAgent — cliente para comunicação com o agente local Nitgen
- * Conecta via HTTP ao serviço rodando em localhost:8080
+ * NitgenAgent — cliente para comunicação com o agente local Nitgen via backend
+ * Conecta via HTTP ao backend que gerencia o agente em localhost:3000
  * 
- * O agente local deve estar rodando no computador com o leitor USB conectado.
- * Veja /docs/NitgenAgent_Setup.md para instruções de instalação.
+ * O backend gerencia automaticamente o agente Python quando necessário.
  */
 
-const AGENT_BASE_URL = 'http://localhost:8080';
+const BACKEND_BASE_URL = 'http://localhost:3000';
 const AGENT_TIMEOUT_MS = 15000;
 
 /**
- * Verifica se o agente local está disponível
+ * Verifica se o agente está disponível via backend
  * @returns {Promise<{online: boolean, version?: string, device?: string}>}
  */
 export async function checkAgentStatus() {
   try {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 3000);
-    const res = await fetch(`${AGENT_BASE_URL}/status`, { signal: controller.signal });
+    const res = await fetch(`${BACKEND_BASE_URL}/agent/status`, { signal: controller.signal });
     clearTimeout(timer);
     if (!res.ok) return { online: false };
     const data = await res.json();
-    return { online: true, version: data.version, device: data.device };
+    
+    // Se o agente não estiver rodando, tenta iniciar automaticamente
+    if (!data.running) {
+      await startAgentViaBackend();
+      // Tenta verificar novamente após iniciar
+      const retryRes = await fetch(`${BACKEND_BASE_URL}/agent/status`);
+      const retryData = await retryRes.json();
+      if (retryData.running) {
+        // Se iniciou, busca o status real do agente
+        const agentRes = await fetch(`${BACKEND_BASE_URL}/agent/status`);
+        const agentData = await agentRes.json();
+        return { online: true, version: agentData.version, device: agentData.device };
+      }
+      return { online: false };
+    }
+    
+    // Se já estava rodando, busca o status real do agente
+    const agentRes = await fetch(`${BACKEND_BASE_URL}/agent/status`);
+    const agentData = await agentRes.json();
+    return { online: true, version: agentData.version, device: agentData.device };
+    
   } catch {
     return { online: false };
   }
 }
 
 /**
- * Captura uma digital do leitor e retorna o FIR (template)
+ * Inicia o agente via backend API
+ * @returns {Promise<boolean>}
+ */
+async function startAgentViaBackend() {
+  try {
+    const res = await fetch(`${BACKEND_BASE_URL}/api/agent/start`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    });
+    const data = await res.json();
+    return data.success;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Captura uma digital do leitor via backend
  * @param {object} options
  * @param {number} [options.timeout=10000] - Timeout em ms
  * @returns {Promise<{success: boolean, fir?: string, quality?: number, error?: string}>}
@@ -37,7 +73,7 @@ export async function captureFingerprint({ timeout = 10000 } = {}) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
   try {
-    const res = await fetch(`${AGENT_BASE_URL}/capture`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/agent/capture`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ timeout }),
@@ -55,7 +91,7 @@ export async function captureFingerprint({ timeout = 10000 } = {}) {
 }
 
 /**
- * Verifica uma digital capturada contra um FIR cadastrado (1:1)
+ * Verifica uma digital capturada contra um FIR cadastrado (1:1) via backend
  * @param {string} enrolledFir - FIR cadastrado no banco
  * @param {string} capturedFir - FIR capturado agora
  * @returns {Promise<{success: boolean, matched: boolean, score?: number, error?: string}>}
@@ -64,7 +100,7 @@ export async function verifyFingerprint(enrolledFir, capturedFir) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
   try {
-    const res = await fetch(`${AGENT_BASE_URL}/verify`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/agent/verify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ enrolled_fir: enrolledFir, captured_fir: capturedFir }),
@@ -81,7 +117,7 @@ export async function verifyFingerprint(enrolledFir, capturedFir) {
 }
 
 /**
- * Identifica uma digital capturada contra uma lista de FIRs (1:N)
+ * Identifica uma digital capturada contra uma lista de FIRs (1:N) via backend
  * @param {string} capturedFir - FIR capturado agora
  * @param {Array<{id: string, fir: string}>} profiles - Lista de perfis para comparar
  * @returns {Promise<{success: boolean, matched_id?: string, score?: number, error?: string}>}
@@ -90,7 +126,7 @@ export async function identifyFingerprint(capturedFir, profiles) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), AGENT_TIMEOUT_MS);
   try {
-    const res = await fetch(`${AGENT_BASE_URL}/identify`, {
+    const res = await fetch(`${BACKEND_BASE_URL}/agent/identify`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ captured_fir: capturedFir, profiles }),
@@ -107,8 +143,8 @@ export async function identifyFingerprint(capturedFir, profiles) {
 }
 
 /**
- * Inicia automaticamente o agente Python se detectado ambiente de desenvolvimento
- * Esta função tenta iniciar o agente local quando a aplicação é aberta
+ * Inicia automaticamente o agente via backend quando a aplicação é aberta
+ * Esta função usa o backend para gerenciar o agente automaticamente
  */
 export async function startAgentIfNeeded() {
   // Verifica se estamos em ambiente de desenvolvimento
@@ -118,20 +154,32 @@ export async function startAgentIfNeeded() {
     return { started: false, reason: 'Ambiente de produção detectado' };
   }
 
-  // Verifica se o agente já está rodando
+  // Verifica se o agente já está rodando via backend
   const status = await checkAgentStatus();
   if (status.online) {
-    return { started: false, reason: 'Agente já está rodando', status };
+    return { started: false, reason: 'Agente já está rodando via backend', status };
   }
 
-  // Tenta iniciar o agente via fetch (simulado - não funciona em browser por segurança)
-  // Em produção, isso precisaria ser feito via backend ou manualmente
-  console.log('🚀 Tentando iniciar agente Python automaticamente...');
-  console.log('⚠️  Por razões de segurança, inicie manualmente: python agent.py');
+  // Tenta iniciar o agente via backend
+  console.log('🚀 Iniciando agente automaticamente via backend...');
+  const success = await startAgentViaBackend();
+  
+  if (success) {
+    // Aguarda um pouco e verifica novamente
+    await new Promise(resolve => setTimeout(resolve, 3000));
+    const newStatus = await checkAgentStatus();
+    if (newStatus.online) {
+      return { 
+        started: true, 
+        reason: 'Agente iniciado com sucesso via backend', 
+        status: newStatus 
+      };
+    }
+  }
   
   return { 
     started: false, 
-    reason: 'Início manual necessário por segurança',
-    instructions: 'Execute "python agent.py" no terminal'
+    reason: 'Falha ao iniciar agente via backend',
+    instructions: 'Verifique o console para mais detalhes'
   };
 }
