@@ -1,5 +1,5 @@
 import React from 'react';
-import { base44 } from '@/api/base44Client';
+import { entities } from '@/api/biometricClient';
 import { useQuery } from '@tanstack/react-query';
 import { Package, ArrowDownCircle, AlertTriangle, TrendingDown, RefreshCw } from 'lucide-react';
 import StatCard from '../components/dashboard/StatCard';

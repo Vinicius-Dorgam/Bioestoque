@@ -24,10 +24,10 @@ cd Bioestoque
 npm install
 ```
 
-3. Crie um arquivo `.env.local` com as variáveis de ambiente:
+3. Crie um arquivo `.env.local` com as variáveis de ambiente (opcional):
 ```
-VITE_BASE44_APP_ID=your_app_id
-VITE_BASE44_APP_BASE_URL=your_backend_url
+# Configurações opcionais para API externa
+VITE_API_BASE_URL=http://localhost:3001/api
 ```
 
 4. Inicie o servidor de desenvolvimento:

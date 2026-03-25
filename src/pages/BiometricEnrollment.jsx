@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { base44 } from '@/api/base44Client';
+import { entities } from '@/api/biometricClient';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -37,7 +37,6 @@ const FINGERS = [
 ];
 
 export default function BiometricEnrollment() {
-  const [agentOnline, setAgentOnline] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [deleteProfile, setDeleteProfile] = useState(null);
   const [capturedFir, setCapturedFir] = useState(null);
@@ -46,16 +45,16 @@ export default function BiometricEnrollment() {
 
   const { data: profiles = [], isLoading } = useQuery({
     queryKey: ['biometric-profiles'],
-    queryFn: () => base44.entities.BiometricProfile.list('-created_date'),
+    queryFn: () => entities.BiometricProfile.list('-created_date'),
   });
 
   const { data: currentUser } = useQuery({
     queryKey: ['me'],
-    queryFn: () => base44.auth.me(),
+    queryFn: () => Promise.resolve({ full_name: 'Usuário Local', email: 'local@bioestoque.com' }),
   });
 
   const createMutation = useMutation({
-    mutationFn: (data) => base44.entities.BiometricProfile.create(data),
+    mutationFn: (data) => entities.BiometricProfile.create(data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['biometric-profiles'] });
       toast.success('Biometria cadastrada com sucesso!');
@@ -65,7 +64,7 @@ export default function BiometricEnrollment() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id) => base44.entities.BiometricProfile.delete(id),
+    mutationFn: (id) => entities.BiometricProfile.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['biometric-profiles'] });
       toast.success('Perfil biométrico removido');
@@ -74,7 +73,7 @@ export default function BiometricEnrollment() {
   });
 
   const toggleMutation = useMutation({
-    mutationFn: ({ id, active }) => base44.entities.BiometricProfile.update(id, { active }),
+    mutationFn: ({ id, active }) => entities.BiometricProfile.update(id, { active }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['biometric-profiles'] }),
   });
 
@@ -116,41 +115,31 @@ export default function BiometricEnrollment() {
           <p className="text-muted-foreground mt-1">Gerencie os perfis biométricos dos usuários</p>
         </div>
         <div className="flex items-center gap-3">
-          <AgentStatusBadge onStatusChange={setAgentOnline} />
+          <AgentStatusBadge />
           <Button
             onClick={() => setShowForm(true)}
-            disabled={!agentOnline}
             className="gap-2 rounded-xl"
-            title={!agentOnline ? 'Agente local offline' : ''}
           >
             <UserPlus className="h-4 w-4" /> Nova Biometria
           </Button>
         </div>
       </div>
 
-      {/* Aviso agente offline */}
-      <AnimatePresence>
-        {!agentOnline && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-          >
-            <Card className="border-amber-200 bg-amber-50">
-              <CardContent className="py-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-amber-800">Agente local não detectado</p>
-                    <p className="text-xs text-amber-700 mt-1">
-                      Para usar o leitor Nitgen Hamster DX, o agente local precisa estar rodando no computador.
-                      Acesse <strong>Configurações → Agente Nitgen</strong> para instruções de instalação.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Aviso modo demonstração */}
+      <Card className="border-blue-200 bg-blue-50">
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-blue-800">Modo demonstração ativado</p>
+              <p className="text-xs text-blue-700 mt-1">
+                A captura de digital está simulada para demonstração. 
+                Em produção, conecte um leitor biométrico real.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Formulário de cadastro */}
       <AnimatePresence>
@@ -226,7 +215,7 @@ export default function BiometricEnrollment() {
                     onCapture={(fir) => setCapturedFir(fir)}
                     onError={() => setCapturedFir(null)}
                     label="Capturar Digital"
-                    disabled={!agentOnline}
+                    disabled={createMutation.isPending}
                   />
                 </div>
 
