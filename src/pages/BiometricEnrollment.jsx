@@ -37,7 +37,7 @@ const FINGERS = [
 ];
 
 export default function BiometricEnrollment() {
-  const [agentOnline, setAgentOnline] = useState(false);
+  const [agentOnline, setAgentOnline] = useState(true); // Sempre online para modo standalone
   const [showForm, setShowForm] = useState(false);
   const [deleteProfile, setDeleteProfile] = useState(null);
   const [capturedFir, setCapturedFir] = useState(null);
@@ -119,38 +119,28 @@ export default function BiometricEnrollment() {
           <AgentStatusBadge onStatusChange={setAgentOnline} className="" />
           <Button
             onClick={() => setShowForm(true)}
-            disabled={!agentOnline}
             className="gap-2 rounded-xl"
-            title={!agentOnline ? 'Agente local offline' : ''}
           >
             <UserPlus className="h-4 w-4" /> Nova Biometria
           </Button>
         </div>
       </div>
 
-      {/* Aviso agente offline */}
-      <AnimatePresence>
-        {!agentOnline && (
-          <motion.div
-            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-          >
-            <Card className="border-amber-200 bg-amber-50">
-              <CardContent className="py-4">
-                <div className="flex items-start gap-3">
-                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
-                  <div>
-                    <p className="text-sm font-semibold text-amber-800">Agente local não detectado</p>
-                    <p className="text-xs text-amber-700 mt-1">
-                      Para usar o leitor Nitgen Hamster DX, o agente local precisa estar rodando no computador.
-                      Acesse <strong>Configurações → Agente Nitgen</strong> para instruções de instalação.
-                    </p>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* Aviso modo standalone */}
+      <Card className="border-green-200 bg-green-50">
+        <CardContent className="py-4">
+          <div className="flex items-start gap-3">
+            <CheckCircle2 className="h-5 w-5 text-green-600 mt-0.5 shrink-0" />
+            <div>
+              <p className="text-sm font-semibold text-green-800">Modo standalone ativado</p>
+              <p className="text-xs text-green-700 mt-1">
+                O sistema está operando em modo de demonstração standalone.
+                Nenhuma configuração adicional é necessária.
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Formulário de cadastro */}
       <AnimatePresence>
@@ -235,7 +225,7 @@ export default function BiometricEnrollment() {
                   <Button variant="outline" onClick={resetForm} className="rounded-xl">Cancelar</Button>
                   <Button
                     onClick={handleSave}
-                    disabled={!agentOnline || !capturedFir || createMutation.isPending}
+                    disabled={!capturedFir || createMutation.isPending}
                     className="gap-2 rounded-xl"
                   >
                     <ShieldCheck className="h-4 w-4" />

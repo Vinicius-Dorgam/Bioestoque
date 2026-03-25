@@ -3,11 +3,11 @@ import { Fingerprint, CheckCircle2, XCircle, Loader2, ShieldCheck, RefreshCw, Al
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { captureFingerprint, identifyFingerprint } from '@/lib/nitgenAgent';
+import { captureFingerprint, identifyFingerprint } from '@/lib/biometricAgent';
 import AgentStatusBadge from './AgentStatusBadge';
 
 /**
- * BiometricAuth — verifica a identidade do usuário via digital (Nitgen Hamster DX)
+ * BiometricAuth — verificação simulada de identidade biométrica
  * Realiza identificação 1:N contra todos os perfis ativos no banco
  *
  * Props:
@@ -24,7 +24,7 @@ export default function BiometricAuth({ onSuccess, onError, profiles = [], disab
 
   const handleAuth = async () => {
     if (!agentOnline) {
-      setErrorMsg('Agente local offline. Verifique se está rodando.');
+      setErrorMsg('Simulador offline. Aguarde a inicialização.');
       setStatus('error');
       return;
     }
@@ -73,8 +73,8 @@ export default function BiometricAuth({ onSuccess, onError, profiles = [], disab
 
   return (
     <div className="flex flex-col items-center gap-5">
-      {/* Status do agente */}
-      <AgentStatusBadge onStatusChange={setAgentOnline} />
+      {/* Status do simulador */}
+      <AgentStatusBadge onStatusChange={setAgentOnline} className="" />
 
       <AnimatePresence mode="wait">
         {status === 'idle' && (
@@ -92,11 +92,11 @@ export default function BiometricAuth({ onSuccess, onError, profiles = [], disab
             {!agentOnline ? (
               <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
                 <AlertTriangle className="h-4 w-4 shrink-0" />
-                <p className="text-xs">Leitor offline — inicie o agente Nitgen</p>
+                <p className="text-xs">Simulador offline — aguarde inicialização</p>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground text-center">
-                Posicione o dedo no leitor e pressione verificar
+                Clique para simular verificação biométrica
               </p>
             )}
 
@@ -134,7 +134,7 @@ export default function BiometricAuth({ onSuccess, onError, profiles = [], disab
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <p className="text-sm font-medium text-primary">Identificando...</p>
             </div>
-            <p className="text-xs text-muted-foreground">Mantenha o dedo imóvel no sensor</p>
+            <p className="text-xs text-muted-foreground">Simulando verificação biométrica</p>
           </motion.div>
         )}
 

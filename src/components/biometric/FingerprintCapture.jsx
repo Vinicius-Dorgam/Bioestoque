@@ -3,10 +3,10 @@ import { Fingerprint, CheckCircle2, XCircle, Loader2, RefreshCw } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
-import { captureFingerprint } from '@/lib/nitgenAgent';
+import { captureFingerprint } from '@/lib/biometricAgent';
 
 /**
- * FingerprintCapture — captura uma digital do leitor Nitgen
+ * FingerprintCapture — captura simulada de digital para demonstração
  * Props:
  *   onCapture(fir: string, quality: number) — chamado com sucesso
  *   onError(msg: string) — chamado em erro
@@ -53,7 +53,7 @@ export default function FingerprintCapture({ onCapture, onError, label = 'Captur
               <Fingerprint className="h-14 w-14 text-primary" />
             </div>
             <p className="text-sm text-muted-foreground text-center">
-              Posicione o dedo no leitor e clique no botão
+              Clique para simular captura biométrica
             </p>
             <Button onClick={handleCapture} disabled={disabled} size="lg" className="gap-2 rounded-xl px-8">
               <Fingerprint className="h-5 w-5" />
@@ -82,9 +82,9 @@ export default function FingerprintCapture({ onCapture, onError, label = 'Captur
             </div>
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
-              <p className="text-sm font-medium text-primary">Lendo digital...</p>
+              <p className="text-sm font-medium text-primary">Capturando digital...</p>
             </div>
-            <p className="text-xs text-muted-foreground">Mantenha o dedo imóvel no sensor</p>
+            <p className="text-xs text-muted-foreground">Simulando leitura biométrica</p>
           </motion.div>
         )}
 
@@ -122,7 +122,7 @@ export default function FingerprintCapture({ onCapture, onError, label = 'Captur
               <XCircle className="h-14 w-14 text-red-500" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-red-600">Falha na leitura</p>
+              <p className="text-sm font-semibold text-red-600">Falha na captura</p>
               <p className="text-xs text-muted-foreground mt-1 max-w-xs">{errorMsg}</p>
             </div>
             <Button variant="outline" onClick={reset} className="gap-2 rounded-xl">
