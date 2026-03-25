@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Wifi, WifiOff, Loader2 } from 'lucide-react';
-import { checkAgentStatus } from '@/lib/biometricAgent';
+import { checkAgentStatus } from '@/lib/nitgenAgent';
 import { cn } from '@/lib/utils';
 
 export default function AgentStatusBadge({ onStatusChange, className }) {
@@ -23,8 +23,8 @@ export default function AgentStatusBadge({ onStatusChange, className }) {
 
   const configs = {
     checking: { icon: Loader2, label: 'Verificando...', color: 'text-muted-foreground bg-muted', spin: true },
-    online:   { icon: Wifi,    label: device ? `Simulador: ${device}` : 'Simulador online', color: 'text-green-700 bg-green-100', spin: false },
-    offline:  { icon: WifiOff, label: 'Simulador offline', color: 'text-red-700 bg-red-100', spin: false },
+    online:   { icon: Wifi,    label: device ? `Leitor: ${device}` : 'Leitor conectado', color: 'text-green-700 bg-green-100', spin: false },
+    offline:  { icon: WifiOff, label: 'Agente offline', color: 'text-red-700 bg-red-100', spin: false },
   };
 
   const cfg = configs[status];
