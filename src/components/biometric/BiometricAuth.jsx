@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
-import { Fingerprint, CheckCircle2, XCircle, ShieldCheck, RefreshCw } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Fingerprint, CheckCircle2, XCircle, Loader2, ShieldCheck, RefreshCw, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { captureFingerprint, identifyFingerprint } from '@/lib/nitgenAgent';
+import AgentStatusBadge from './AgentStatusBadge';
 
 /**
- * BiometricAuth — verificação simulada de identidade para demonstração
+ * BiometricAuth — verifica a identidade do usuário via digital (Nitgen Hamster DX)
+ * Realiza identificação 1:N contra todos os perfis ativos no banco
+ *
  * Props:
  *   onSuccess(profile) — chamado com o perfil encontrado
  *   onError(msg) — chamado em caso de erro
@@ -14,10 +18,17 @@ import { motion, AnimatePresence } from 'framer-motion';
  */
 export default function BiometricAuth({ onSuccess, onError, profiles = [], disabled }) {
   const [status, setStatus] = useState('idle'); // idle | scanning | success | error
+  const [agentOnline, setAgentOnline] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
   const [matchedProfile, setMatchedProfile] = useState(null);
 
   const handleAuth = async () => {
+    if (!agentOnline) {
+      setErrorMsg('Agente local offline. Verifique se está rodando.');
+      setStatus('error');
+      return;
+    }
+
     if (profiles.length === 0) {
       setErrorMsg('Nenhum perfil biométrico cadastrado. Acesse "Cadastro Biométrico" para registrar.');
       setStatus('error');
@@ -27,18 +38,26 @@ export default function BiometricAuth({ onSuccess, onError, profiles = [], disab
     setStatus('scanning');
     setErrorMsg('');
 
-    // Simula verificação com delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    // 1. Captura a digital atual
+    const capture = await captureFingerprint({ timeout: 10000 });
+    if (!capture.success) {
+      setErrorMsg(capture.error || 'Falha ao capturar digital');
+      setStatus('error');
+      onError?.(capture.error);
+      return;
+    }
 
-    // Simula sucesso aleatório (70% de chance)
-    const isSuccess = Math.random() > 0.3;
-    
-    if (isSuccess && profiles.length > 0) {
-      // Seleciona um perfil aleatório para "autenticar"
-      const randomProfile = profiles[Math.floor(Math.random() * profiles.length)];
-      setMatchedProfile(randomProfile);
+    // 2. Identifica 1:N contra todos os perfis ativos
+    const activeProfiles = profiles.filter(p => p.active !== false);
+    const profilesPayload = activeProfiles.map(p => ({ id: p.id, fir: p.fir_data }));
+
+    const result = await identifyFingerprint(capture.fir, profilesPayload);
+
+    if (result.success && result.matched_id) {
+      const found = activeProfiles.find(p => p.id === result.matched_id);
+      setMatchedProfile(found || null);
       setStatus('success');
-      setTimeout(() => onSuccess?.(randomProfile), 800);
+      setTimeout(() => onSuccess?.(found), 800);
     } else {
       setErrorMsg('Digital não reconhecida. Tente novamente ou use outro dedo.');
       setStatus('error');
@@ -54,23 +73,36 @@ export default function BiometricAuth({ onSuccess, onError, profiles = [], disab
 
   return (
     <div className="flex flex-col items-center gap-5">
+      {/* Status do agente */}
+      <AgentStatusBadge onStatusChange={setAgentOnline} />
+
       <AnimatePresence mode="wait">
         {status === 'idle' && (
           <motion.div key="idle"
             initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 0.9 }}
             className="flex flex-col items-center gap-4"
           >
-            <div className="w-28 h-28 rounded-full bg-primary/10 flex items-center justify-center border-2 border-dashed border-primary/40">
-              <Fingerprint className="h-14 w-14 text-primary" />
+            <div className={cn(
+              "w-28 h-28 rounded-full flex items-center justify-center border-2 border-dashed transition-colors",
+              agentOnline ? "bg-primary/10 border-primary/40" : "bg-muted border-muted-foreground/30"
+            )}>
+              <Fingerprint className={cn("h-14 w-14", agentOnline ? "text-primary" : "text-muted-foreground")} />
             </div>
-            
-            <p className="text-sm text-muted-foreground text-center">
-              Modo demonstração: clique para simular verificação
-            </p>
+
+            {!agentOnline ? (
+              <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-3 py-2 rounded-lg">
+                <AlertTriangle className="h-4 w-4 shrink-0" />
+                <p className="text-xs">Leitor offline — inicie o agente Nitgen</p>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center">
+                Posicione o dedo no leitor e pressione verificar
+              </p>
+            )}
 
             <Button
               onClick={handleAuth}
-              disabled={disabled}
+              disabled={disabled || !agentOnline}
               size="lg"
               className="gap-2 px-8 rounded-xl"
             >
@@ -99,10 +131,10 @@ export default function BiometricAuth({ onSuccess, onError, profiles = [], disab
               <Fingerprint className="h-14 w-14 text-primary" />
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <p className="text-sm font-medium text-primary">Identificando...</p>
             </div>
-            <p className="text-xs text-muted-foreground">Simulando verificação</p>
+            <p className="text-xs text-muted-foreground">Mantenha o dedo imóvel no sensor</p>
           </motion.div>
         )}
 

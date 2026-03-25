@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
-import { Fingerprint, CheckCircle2, XCircle, RefreshCw } from 'lucide-react';
+import { Fingerprint, CheckCircle2, XCircle, Loader2, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
+import { captureFingerprint } from '@/lib/nitgenAgent';
 
 /**
- * FingerprintCapture — captura simulada de digital para demonstração
+ * FingerprintCapture — captura uma digital do leitor Nitgen
  * Props:
  *   onCapture(fir: string, quality: number) — chamado com sucesso
  *   onError(msg: string) — chamado em erro
@@ -21,16 +22,17 @@ export default function FingerprintCapture({ onCapture, onError, label = 'Captur
     setStatus('scanning');
     setErrorMsg('');
 
-    // Simula captura de digital com delay
-    await new Promise(resolve => setTimeout(resolve, 2000));
+    const result = await captureFingerprint({ timeout: 10000 });
 
-    // Simula sucesso com qualidade aleatória
-    const simulatedQuality = Math.floor(Math.random() * 30) + 70; // 70-99%
-    const simulatedFIR = btoa(`mock_fir_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`);
-
-    setQuality(simulatedQuality);
-    setStatus('success');
-    onCapture?.(simulatedFIR, simulatedQuality);
+    if (result.success) {
+      setQuality(result.quality);
+      setStatus('success');
+      onCapture?.(result.fir, result.quality);
+    } else {
+      setErrorMsg(result.error || 'Falha ao capturar digital');
+      setStatus('error');
+      onError?.(result.error);
+    }
   };
 
   const reset = () => {
@@ -51,7 +53,7 @@ export default function FingerprintCapture({ onCapture, onError, label = 'Captur
               <Fingerprint className="h-14 w-14 text-primary" />
             </div>
             <p className="text-sm text-muted-foreground text-center">
-              Modo demonstração: clique para simular captura
+              Posicione o dedo no leitor e clique no botão
             </p>
             <Button onClick={handleCapture} disabled={disabled} size="lg" className="gap-2 rounded-xl px-8">
               <Fingerprint className="h-5 w-5" />
@@ -79,10 +81,10 @@ export default function FingerprintCapture({ onCapture, onError, label = 'Captur
               <Fingerprint className="h-14 w-14 text-primary" />
             </div>
             <div className="flex items-center gap-2">
-              <div className="h-4 w-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm font-medium text-primary">Simulando captura...</p>
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <p className="text-sm font-medium text-primary">Lendo digital...</p>
             </div>
-            <p className="text-xs text-muted-foreground">Aguardando simulação</p>
+            <p className="text-xs text-muted-foreground">Mantenha o dedo imóvel no sensor</p>
           </motion.div>
         )}
 
@@ -95,10 +97,10 @@ export default function FingerprintCapture({ onCapture, onError, label = 'Captur
               <CheckCircle2 className="h-14 w-14 text-green-600" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-green-700">Digital simulada!</p>
+              <p className="text-sm font-semibold text-green-700">Digital capturada!</p>
               {quality !== null && (
                 <p className="text-xs text-muted-foreground mt-1">
-                  Qualidade simulada: <span className={cn(
+                  Qualidade: <span className={cn(
                     'font-medium',
                     quality >= 70 ? 'text-green-600' : quality >= 40 ? 'text-amber-600' : 'text-red-600'
                   )}>{quality}%</span>
@@ -106,7 +108,7 @@ export default function FingerprintCapture({ onCapture, onError, label = 'Captur
               )}
             </div>
             <Button variant="outline" onClick={reset} size="sm" className="gap-2 rounded-xl">
-              <RefreshCw className="h-3.5 w-3.5" /> Simular novamente
+              <RefreshCw className="h-3.5 w-3.5" /> Capturar novamente
             </Button>
           </motion.div>
         )}
@@ -120,8 +122,8 @@ export default function FingerprintCapture({ onCapture, onError, label = 'Captur
               <XCircle className="h-14 w-14 text-red-500" />
             </div>
             <div className="text-center">
-              <p className="text-sm font-semibold text-red-600">Falha na simulação</p>
-              <p className="text-xs text-muted-foreground mt-1 max-w-xs">{errorMsg || 'Erro ao simular captura'}</p>
+              <p className="text-sm font-semibold text-red-600">Falha na leitura</p>
+              <p className="text-xs text-muted-foreground mt-1 max-w-xs">{errorMsg}</p>
             </div>
             <Button variant="outline" onClick={reset} className="gap-2 rounded-xl">
               <RefreshCw className="h-4 w-4" /> Tentar novamente

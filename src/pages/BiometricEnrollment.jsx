@@ -37,6 +37,7 @@ const FINGERS = [
 ];
 
 export default function BiometricEnrollment() {
+  const [agentOnline, setAgentOnline] = useState(false);
   const [showForm, setShowForm] = useState(false);
   const [deleteProfile, setDeleteProfile] = useState(null);
   const [capturedFir, setCapturedFir] = useState(null);
@@ -115,31 +116,41 @@ export default function BiometricEnrollment() {
           <p className="text-muted-foreground mt-1">Gerencie os perfis biométricos dos usuários</p>
         </div>
         <div className="flex items-center gap-3">
-          <AgentStatusBadge />
+          <AgentStatusBadge onStatusChange={setAgentOnline} className="" />
           <Button
             onClick={() => setShowForm(true)}
+            disabled={!agentOnline}
             className="gap-2 rounded-xl"
+            title={!agentOnline ? 'Agente local offline' : ''}
           >
             <UserPlus className="h-4 w-4" /> Nova Biometria
           </Button>
         </div>
       </div>
 
-      {/* Aviso modo demonstração */}
-      <Card className="border-blue-200 bg-blue-50">
-        <CardContent className="py-4">
-          <div className="flex items-start gap-3">
-            <CheckCircle2 className="h-5 w-5 text-blue-600 mt-0.5 shrink-0" />
-            <div>
-              <p className="text-sm font-semibold text-blue-800">Modo demonstração ativado</p>
-              <p className="text-xs text-blue-700 mt-1">
-                A captura de digital está simulada para demonstração. 
-                Em produção, conecte um leitor biométrico real.
-              </p>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Aviso agente offline */}
+      <AnimatePresence>
+        {!agentOnline && (
+          <motion.div
+            initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+          >
+            <Card className="border-amber-200 bg-amber-50">
+              <CardContent className="py-4">
+                <div className="flex items-start gap-3">
+                  <AlertTriangle className="h-5 w-5 text-amber-600 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-amber-800">Agente local não detectado</p>
+                    <p className="text-xs text-amber-700 mt-1">
+                      Para usar o leitor Nitgen Hamster DX, o agente local precisa estar rodando no computador.
+                      Acesse <strong>Configurações → Agente Nitgen</strong> para instruções de instalação.
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Formulário de cadastro */}
       <AnimatePresence>
@@ -224,7 +235,7 @@ export default function BiometricEnrollment() {
                   <Button variant="outline" onClick={resetForm} className="rounded-xl">Cancelar</Button>
                   <Button
                     onClick={handleSave}
-                    disabled={!capturedFir || createMutation.isPending}
+                    disabled={!agentOnline || !capturedFir || createMutation.isPending}
                     className="gap-2 rounded-xl"
                   >
                     <ShieldCheck className="h-4 w-4" />
